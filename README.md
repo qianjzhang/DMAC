@@ -1,2 +1,2 @@
 # Data Management and Analysis Core
-Shiny app is created by Kai and Marina. 
+A shiny app for converting mass spectrometry data is created by Kai and Marina. 

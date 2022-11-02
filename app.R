@@ -1,25 +1,36 @@
 library(shiny)
 
-#rm(list=ls())
-
 ui <- fluidPage(
-  
-  titlePanel("A Conversion Tool for Mass Spectrometry Data"),
-  
-
-  HTML("Iowa Superfund Research Program Data Management and Analysis Core, &copy; 2022"), 
-  br(),
-  br(),
-  sidebarPanel(
-    fileInput("infile", "Mass Spectrometry Data", accept = c(".csv"), buttonLabel = "Select a File"),
-    fileInput("ref", "Reference Data", accept = c(".csv"), buttonLabel = "Select a File"),
-    downloadButton("download", "Download Result"),
-  ),
-  
-  mainPanel(
-    textOutput("preview")
+  titlePanel("A Conversion Tool for GC Peak Area Data"),
+  h4("From MassHunter Export File to Operational Format"),
+  wellPanel(fluidRow(
+    column(5, 
+           fileInput("infile", 
+                     tags$div(
+                       paste("MassHunter Export File"), 
+                       tags$a("(Example)", href="https://github.com/qianjzhang/DMAC/blob/main/GCPeakArea.csv", target="_blank"), 
+                       sep=" "
+                     ), 
+                     accept = c(".csv"), buttonLabel = "Select a File", placeholder = ".csv format only"),
+           fileInput("ref", 
+                     tags$div(
+                       paste("Reference Data"), 
+                       tags$a("(Example)", href="https://github.com/qianjzhang/DMAC/blob/main/transition2pcb.csv", target="_blank"), 
+                       sep=" "
+                     ), 
+                     accept = c(".csv"), buttonLabel = "Select a File", placeholder = ".csv format only"),
+           downloadButton("download", "Download Converted File"),
+    ),
+    column(7, 
+           textOutput("output1"),
+           textOutput("output2"),
+    )
+  )),
+  fluidRow(
+    column(12,
+           h6("Iowa Superfund Research Program Data Management and Analysis Core, \uA9 2022")
+    )
   )
-
 )
 
 
@@ -42,7 +53,7 @@ masshunter2output = function(input, output){
       ttt = strsplit(ttt[[1]][2], "\\) ")
       Transition = ttt[[1]][1]
       Sample.ID = strsplit(ttt[[1]][2], " ")[[1]][1]  # remove "Smooth" 
-
+      
       value = NULL
       for (j in (index[i]+1):(index[i+1])){
         if(grepl('[1-9]', substr(raw$V2[j], 1, 1)) & grepl('[1-9]', substr(raw$V3[j], 1, 1))) 
@@ -55,7 +66,7 @@ masshunter2output = function(input, output){
     result$Peak = as.numeric(result$Peak)
     result = subset(result, !grepl("TIC", Label, fixed=TRUE) & grepl("Smooth", Label, fixed=TRUE))    # remove "TIC" or !"Smooth"
     result = result[, 1:8]           # remove Label. Shiny does not workl with "next" in a loop
-
+    
     for (k in unique(result$Sample_ID)){
       tmp = subset(result, Sample_ID == k)[, c("MS.Transition", "Peak", "RT", "Area")]
       names(tmp) = c("MS.Transition", "Peak", paste("RT", k, sep="_"), paste("Area", k, sep="_")) 
@@ -66,23 +77,25 @@ masshunter2output = function(input, output){
     
     ref
   })
-
-    output$preview <- renderText({
-      paste("# of NAs in each Row:", toString(rowSums(is.na(data()))),
-            " \n # of NAs in each Col:", toString(colSums(is.na(data()))))
-    })
-    
-    output$download <- downloadHandler(
-       filename = function() {
-         paste('output-', Sys.Date(), '.csv', sep='')
-       },
-       content = function(file) {
-         write.csv(data(), file, row.names = FALSE)
-       }
-     )
-
-  }
+  
+  output$output1 <- renderText({
+    paste("# of NAs in Rows:", toString(rowSums(is.na(data()))))
+  })
+  
+  output$output2 <- renderText({
+    paste("# of NAs in Cols:", toString(colSums(is.na(data()))))
+  })
+  
+  output$download <- downloadHandler(
+    filename = function() {
+      paste('output-', Sys.Date(), '.csv', sep='')
+    },
+    content = function(file) {
+      write.csv(data(), file, row.names = FALSE)
+    }
+  )
+  
+}
 
 
 shinyApp(ui, server = masshunter2output)
-  
